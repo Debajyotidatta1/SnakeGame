@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake Hunts the Mouse</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="game-shell">
+    <section class="hero">
+      <p class="eyebrow">Arcade Grid Hunt</p>
+      <h1>Snake Hunts the Mouse</h1>
+      <p class="subtitle">
+        Guide the snake across the matrix and chase down every tiny mouse before the trail traps you.
+      </p>
+    </section>
+
+    <section class="hud">
+      <div class="panel">
+        <span class="label">Score</span>
+        <strong id="score">0</strong>
+      </div>
+      <div class="panel">
+        <span class="label">Best</span>
+        <strong id="best-score">0</strong>
+      </div>
+      <div class="panel status-panel">
+        <span class="label">Status</span>
+        <strong id="status">Hunt started</strong>
+      </div>
+    </section>
+
+    <section class="board-wrap">
+      <div id="board" class="board" aria-label="Snake game board" role="grid"></div>
+      <div id="overlay" class="overlay hidden" aria-live="polite">
+        <div class="overlay-card">
+          <p class="overlay-kicker">Run ended</p>
+          <h2 id="overlay-title">The mouse escaped</h2>
+          <p id="overlay-text">Press restart to hunt again.</p>
+          <button id="restart-button" class="action-button" type="button">Restart Hunt</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <button class="action-button" id="pause-button" type="button">Pause</button>
+      <button class="action-button secondary" id="new-game-button" type="button">New Game</button>
+    </section>
+
+    <section class="guide">
+      <div>
+        <h3>How to play</h3>
+        <p>Use arrow keys or WASD. On touch screens, use the directional pad.</p>
+      </div>
+      <div class="pad" aria-label="Touch controls">
+        <button class="pad-button up" data-direction="up" type="button">↑</button>
+        <button class="pad-button left" data-direction="left" type="button">←</button>
+        <button class="pad-button down" data-direction="down" type="button">↓</button>
+        <button class="pad-button right" data-direction="right" type="button">→</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="./script.js"></script>
+</body>
+</html>
