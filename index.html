@@ -29,16 +29,28 @@
         <span class="label">Status</span>
         <strong id="status">Hunt started</strong>
       </div>
+      <div class="panel">
+        <span class="label">Level</span>
+        <strong id="level">1</strong>
+      </div>
+      <div class="panel">
+        <span class="label">Speed</span>
+        <strong id="speed">Base</strong>
+      </div>
     </section>
 
     <section class="board-wrap">
       <div id="board" class="board" aria-label="Snake game board" role="grid"></div>
-      <div id="overlay" class="overlay hidden" aria-live="polite">
+      <div id="overlay" class="overlay" aria-live="polite">
         <div class="overlay-card">
-          <p class="overlay-kicker">Run ended</p>
-          <h2 id="overlay-title">The mouse escaped</h2>
-          <p id="overlay-text">Press restart to hunt again.</p>
-          <button id="restart-button" class="action-button" type="button">Restart Hunt</button>
+          <p class="overlay-kicker" id="overlay-kicker">Matrix Hunt</p>
+          <h2 id="overlay-title">Ready to hunt?</h2>
+          <p id="overlay-text">Catch mice, survive longer, and watch the hunt speed up every few points.</p>
+          <div class="overlay-stats" id="overlay-stats"></div>
+          <div class="overlay-actions">
+            <button id="start-button" class="action-button" type="button">Start Hunt</button>
+            <button id="restart-button" class="action-button secondary hidden" type="button">Restart Hunt</button>
+          </div>
         </div>
       </div>
     </section>
@@ -46,12 +58,13 @@
     <section class="controls">
       <button class="action-button" id="pause-button" type="button">Pause</button>
       <button class="action-button secondary" id="new-game-button" type="button">New Game</button>
+      <button class="action-button secondary" id="mute-button" type="button">Sound On</button>
     </section>
 
     <section class="guide">
       <div>
         <h3>How to play</h3>
-        <p>Use arrow keys or WASD. On touch screens, tap the pad or swipe anywhere on the board.</p>
+        <p>Use arrow keys or WASD. On touch screens, tap the pad or swipe anywhere on the board. The hunt gets faster as your score rises.</p>
       </div>
       <div class="pad" aria-label="Touch controls">
         <button class="pad-button up" data-direction="up" type="button">↑</button>
@@ -59,6 +72,17 @@
         <button class="pad-button down" data-direction="down" type="button">↓</button>
         <button class="pad-button right" data-direction="right" type="button">→</button>
       </div>
+    </section>
+
+    <section class="leaderboard panel">
+      <div class="leaderboard-header">
+        <div>
+          <span class="label">Top Hunters</span>
+          <h3>Local Leaderboard</h3>
+        </div>
+        <p class="leaderboard-copy">Best runs are saved on this device.</p>
+      </div>
+      <ol id="leaderboard-list" class="leaderboard-list"></ol>
     </section>
   </main>
 

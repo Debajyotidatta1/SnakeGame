@@ -1,18 +1,29 @@
 const gridSize = 28;
-const tickMs = 150;
+const baseTickMs = 150;
+const speedStep = 8;
+const minimumTickMs = 78;
 const bestScoreKey = "snake-hunts-mouse-best";
+const leaderboardKey = "snake-hunts-mouse-leaderboard";
+const soundMutedKey = "snake-hunts-mouse-muted";
 
 const board = document.getElementById("board");
 const scoreEl = document.getElementById("score");
 const bestScoreEl = document.getElementById("best-score");
 const statusEl = document.getElementById("status");
+const levelEl = document.getElementById("level");
+const speedEl = document.getElementById("speed");
 const overlay = document.getElementById("overlay");
+const overlayKicker = document.getElementById("overlay-kicker");
 const overlayTitle = document.getElementById("overlay-title");
 const overlayText = document.getElementById("overlay-text");
+const overlayStats = document.getElementById("overlay-stats");
+const startButton = document.getElementById("start-button");
 const pauseButton = document.getElementById("pause-button");
 const restartButton = document.getElementById("restart-button");
 const newGameButton = document.getElementById("new-game-button");
+const muteButton = document.getElementById("mute-button");
 const padButtons = document.querySelectorAll(".pad-button");
+const leaderboardList = document.getElementById("leaderboard-list");
 const directionMap = {
   up: { x: 0, y: -1 },
   down: { x: 0, y: 1 },
@@ -26,13 +37,18 @@ let queuedDirection;
 let mouse;
 let score;
 let bestScore = Number(localStorage.getItem(bestScoreKey) || 0);
+let leaderboard = loadLeaderboard();
+let soundMuted = localStorage.getItem(soundMutedKey) === "true";
 let paused = false;
 let gameOver = false;
 let tickTimer;
+let currentTickMs = baseTickMs;
 let touchStartX = 0;
 let touchStartY = 0;
+let audioContext;
 
 bestScoreEl.textContent = bestScore;
+updateMuteButton();
 
 function createBoard() {
   const cells = [];
@@ -77,6 +93,15 @@ function setStatus(text) {
   statusEl.textContent = text;
 }
 
+function currentLevel() {
+  return Math.floor(score / 5) + 1;
+}
+
+function currentSpeedLabel() {
+  const speedPercent = Math.round((baseTickMs / currentTickMs) * 100);
+  return `${speedPercent}%`;
+}
+
 function render() {
   for (const cell of cells) {
     cell.className = "cell";
@@ -92,6 +117,8 @@ function render() {
   }
   scoreEl.textContent = score;
   bestScoreEl.textContent = bestScore;
+  levelEl.textContent = currentLevel();
+  speedEl.textContent = currentSpeedLabel();
 }
 
 function updateBestScore() {
@@ -101,9 +128,68 @@ function updateBestScore() {
   }
 }
 
-function showOverlay(title, text) {
+function loadLeaderboard() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(leaderboardKey) || "[]");
+    return Array.isArray(parsed) ? parsed.slice(0, 5) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLeaderboard() {
+  localStorage.setItem(leaderboardKey, JSON.stringify(leaderboard.slice(0, 5)));
+}
+
+function renderLeaderboard() {
+  leaderboardList.innerHTML = "";
+
+  if (leaderboard.length === 0) {
+    const empty = document.createElement("li");
+    empty.textContent = "No runs yet. Start the hunt and set the first high score.";
+    leaderboardList.appendChild(empty);
+    return;
+  }
+
+  leaderboard.forEach((entry, index) => {
+    const item = document.createElement("li");
+    const title = document.createElement("span");
+    const meta = document.createElement("span");
+    title.textContent = `${index + 1}. ${entry.score} mice`;
+    meta.textContent = `Level ${entry.level} • ${entry.date}`;
+    meta.className = "entry-meta";
+    item.append(title, meta);
+    leaderboardList.appendChild(item);
+  });
+}
+
+function recordLeaderboardEntry() {
+  const entry = {
+    score,
+    level: currentLevel(),
+    date: new Date().toLocaleDateString("en-IN", {
+      month: "short",
+      day: "numeric",
+    }),
+  };
+
+  leaderboard.push(entry);
+  leaderboard.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    return b.level - a.level;
+  });
+  leaderboard = leaderboard.slice(0, 5);
+  saveLeaderboard();
+  renderLeaderboard();
+}
+
+function showOverlay(kicker, title, text, stats = "") {
+  overlayKicker.textContent = kicker;
   overlayTitle.textContent = title;
   overlayText.textContent = text;
+  overlayStats.textContent = stats;
   overlay.classList.remove("hidden");
 }
 
@@ -111,7 +197,17 @@ function hideOverlay() {
   overlay.classList.add("hidden");
 }
 
-function resetGame() {
+function setSpeedForScore() {
+  const level = currentLevel();
+  currentTickMs = Math.max(minimumTickMs, baseTickMs - (level - 1) * speedStep);
+  startLoop();
+}
+
+function formatRunStats() {
+  return `Score ${score} • Level ${currentLevel()} • Best ${bestScore}`;
+}
+
+function resetRun() {
   const center = Math.floor(gridSize / 2);
   snake = [
     { x: center, y: center },
@@ -124,10 +220,39 @@ function resetGame() {
   score = 0;
   paused = false;
   gameOver = false;
+  currentTickMs = baseTickMs;
   pauseButton.textContent = "Pause";
-  hideOverlay();
   setStatus("Hunt started");
   render();
+}
+
+function resetGame() {
+  resetRun();
+  hideOverlay();
+  setSpeedForScore();
+}
+
+function openStartScreen() {
+  resetRun();
+  paused = true;
+  pauseButton.textContent = "Resume";
+  setStatus("Waiting to start");
+  startButton.classList.remove("hidden");
+  restartButton.classList.add("hidden");
+  showOverlay(
+    "Matrix Hunt",
+    "Ready to hunt?",
+    "Catch mice, survive longer, and every five points the grid gets faster.",
+    bestScore ? `Best score ${bestScore} • Top level ${leaderboard[0]?.level || 1}` : "Swipe on mobile or use WASD on desktop."
+  );
+}
+
+function startGame() {
+  resetGame();
+  startButton.classList.add("hidden");
+  restartButton.classList.add("hidden");
+  setStatus("Hunting...");
+  playTone(440, 0.04, "square");
 }
 
 function isReverse(next) {
@@ -148,10 +273,14 @@ function endGame(reason) {
   gameOver = true;
   paused = false;
   updateBestScore();
+  recordLeaderboardEntry();
   render();
   setStatus("Run ended");
-  showOverlay("The mouse escaped", reason);
+  startButton.classList.add("hidden");
+  restartButton.classList.remove("hidden");
+  showOverlay("Run ended", "The mouse escaped", reason, formatRunStats());
   pauseButton.textContent = "Pause";
+  playTone(155, 0.18, "sawtooth");
 }
 
 function step() {
@@ -189,14 +318,20 @@ function step() {
   if (positionsMatch(nextHead, mouse)) {
     score += 1;
     updateBestScore();
+    setSpeedForScore();
     mouse = randomEmptyCell();
     setStatus("Mouse caught");
+    playTone(620, 0.05, "triangle");
     if (!mouse) {
       gameOver = true;
       paused = false;
+      recordLeaderboardEntry();
       render();
       setStatus("Matrix cleared");
-      showOverlay("Every mouse is caught", "You filled the whole grid and won the hunt.");
+      startButton.classList.add("hidden");
+      restartButton.classList.remove("hidden");
+      showOverlay("Perfect run", "Every mouse is caught", "You filled the whole grid and won the hunt.", formatRunStats());
+      playTone(880, 0.12, "triangle");
       return;
     }
   } else {
@@ -214,6 +349,57 @@ function togglePause() {
   paused = !paused;
   pauseButton.textContent = paused ? "Resume" : "Pause";
   setStatus(paused ? "Paused" : "Hunting...");
+}
+
+function ensureAudioContext() {
+  if (audioContext || soundMuted) {
+    return audioContext;
+  }
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) {
+    return null;
+  }
+
+  audioContext = new AudioCtx();
+  return audioContext;
+}
+
+function playTone(frequency, duration, type) {
+  if (soundMuted) {
+    return;
+  }
+
+  const context = ensureAudioContext();
+  if (!context) {
+    return;
+  }
+
+  const now = context.currentTime;
+  const oscillator = context.createOscillator();
+  const gainNode = context.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, now);
+  gainNode.gain.setValueAtTime(0.0001, now);
+  gainNode.gain.exponentialRampToValueAtTime(0.04, now + 0.01);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  oscillator.connect(gainNode);
+  gainNode.connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + duration);
+}
+
+function updateMuteButton() {
+  muteButton.textContent = soundMuted ? "Sound Off" : "Sound On";
+}
+
+function toggleSound() {
+  soundMuted = !soundMuted;
+  localStorage.setItem(soundMutedKey, String(soundMuted));
+  updateMuteButton();
+  if (!soundMuted) {
+    playTone(520, 0.05, "triangle");
+  }
 }
 
 function handleKeydown(event) {
@@ -285,6 +471,8 @@ function setupEvents() {
   pauseButton.addEventListener("click", togglePause);
   restartButton.addEventListener("click", resetGame);
   newGameButton.addEventListener("click", resetGame);
+  startButton.addEventListener("click", startGame);
+  muteButton.addEventListener("click", toggleSound);
   board.addEventListener("touchstart", handleTouchStart, { passive: true });
   board.addEventListener("touchmove", handleTouchMove, { passive: false });
   board.addEventListener("touchend", handleTouchEnd);
@@ -303,9 +491,10 @@ function setupEvents() {
 
 function startLoop() {
   clearInterval(tickTimer);
-  tickTimer = window.setInterval(step, tickMs);
+  tickTimer = window.setInterval(step, currentTickMs);
 }
 
+renderLeaderboard();
 setupEvents();
-resetGame();
+openStartScreen();
 startLoop();
