@@ -131,6 +131,8 @@ body::before {
   padding: 16px;
   border-radius: 28px;
   overflow: hidden;
+  width: min(100%, 78vh);
+  margin: 0 auto;
 }
 
 .board {
@@ -276,7 +278,7 @@ body::before {
 }
 
 .controls {
-  margin: 16px 0;
+  margin: 12px 0;
 }
 
 .action-button,
@@ -353,7 +355,7 @@ body::before {
 .pad-button.right { grid-area: right; }
 
 .leaderboard {
-  margin-top: 18px;
+  margin-top: 14px;
   border-radius: 24px;
 }
 
@@ -389,6 +391,100 @@ body::before {
 
 .entry-meta {
   color: var(--muted);
+}
+
+@media (min-width: 701px) {
+  .game-shell {
+    width: min(920px, calc(100vw - 24px));
+    padding-top: 14px;
+    padding-bottom: 20px;
+  }
+
+  .hero {
+    margin-bottom: 12px;
+  }
+
+  .eyebrow {
+    margin-bottom: 6px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 5vw, 3.6rem);
+  }
+
+  .subtitle {
+    margin: 8px 0 0;
+    font-size: 0.92rem;
+    max-width: 38rem;
+  }
+
+  .hud {
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .panel {
+    padding: 10px 12px;
+  }
+
+  .label {
+    margin-bottom: 4px;
+    font-size: 0.66rem;
+  }
+
+  .panel strong {
+    font-size: 1.05rem;
+  }
+
+  .board-wrap {
+    padding: 10px;
+    width: min(100%, 64vh);
+    border-radius: 22px;
+  }
+
+  .board {
+    gap: 2px;
+  }
+
+  .cell {
+    border-radius: 4px;
+  }
+
+  .cell::after {
+    inset: 2px;
+    border-radius: 3px;
+  }
+
+  .overlay-card {
+    width: min(380px, calc(100% - 24px));
+    padding: 18px;
+  }
+
+  .overlay-card h2 {
+    font-size: 2rem;
+    margin-top: 8px;
+  }
+
+  .controls,
+  .guide {
+    margin-top: 10px;
+  }
+
+  .guide {
+    padding: 14px 16px;
+  }
+
+  .leaderboard {
+    margin-top: 10px;
+  }
+
+  .leaderboard-list {
+    margin-top: 12px;
+  }
+
+  .leaderboard-list li {
+    padding: 6px 0;
+  }
 }
 
 @media (max-width: 700px) {
