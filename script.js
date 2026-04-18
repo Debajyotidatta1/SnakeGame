@@ -51,6 +51,8 @@ let pendingDirections = [];
 let animationFrameId;
 let lastFrameTime = 0;
 let accumulatedMs = 0;
+let boardMetrics = { cellSize: 0, gap: 0, stride: 0 };
+let pendingBestScoreSave = false;
 
 bestScoreEl.textContent = bestScore;
 updateMuteButton();
@@ -69,6 +71,20 @@ function createBoard() {
 }
 
 const cells = createBoard();
+
+function updateBoardMetrics() {
+  const style = window.getComputedStyle(board);
+  const gap = Number.parseFloat(style.columnGap || style.gap || "0");
+  const boardWidth = board.clientWidth;
+  const cellSize = (boardWidth - gap * (gridSize - 1)) / gridSize;
+  boardMetrics = {
+    cellSize,
+    gap,
+    stride: cellSize + gap,
+  };
+}
+
+updateBoardMetrics();
 
 function cloneSnakeState(state) {
   return state.map((segment) => ({ ...segment }));
@@ -137,12 +153,23 @@ function syncSnakePieces() {
   }
 }
 
-function getBoardMetrics() {
-  const style = window.getComputedStyle(board);
-  const gap = Number.parseFloat(style.columnGap || style.gap || "0");
-  const boardWidth = board.clientWidth;
-  const cellSize = (boardWidth - gap * (gridSize - 1)) / gridSize;
-  return { cellSize, gap };
+function persistBestScoreSoon() {
+  if (pendingBestScoreSave) {
+    return;
+  }
+
+  pendingBestScoreSave = true;
+  const save = () => {
+    pendingBestScoreSave = false;
+    localStorage.setItem(bestScoreKey, String(bestScore));
+  };
+
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(save, { timeout: 300 });
+    return;
+  }
+
+  window.setTimeout(save, 0);
 }
 
 function renderSnake(progress = 1) {
@@ -152,8 +179,7 @@ function renderSnake(progress = 1) {
   }
 
   syncSnakePieces();
-  const { cellSize, gap } = getBoardMetrics();
-  const stride = cellSize + gap;
+  const { cellSize, stride } = boardMetrics;
 
   snake.forEach((segment, index) => {
     const piece = snakeLayer.children[index];
@@ -173,7 +199,7 @@ function renderSnake(progress = 1) {
 function updateBestScore() {
   if (score > bestScore) {
     bestScore = score;
-    localStorage.setItem(bestScoreKey, String(bestScore));
+    persistBestScoreSoon();
   }
 }
 
@@ -533,6 +559,7 @@ function handleTouchEnd(event) {
 
 function setupEvents() {
   window.addEventListener("keydown", handleKeydown);
+  window.addEventListener("resize", updateBoardMetrics);
   pauseButton.addEventListener("click", togglePause);
   restartButton.addEventListener("click", resetGame);
   newGameButton.addEventListener("click", resetGame);
