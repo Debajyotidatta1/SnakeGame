@@ -53,6 +53,7 @@ let lastFrameTime = 0;
 let accumulatedMs = 0;
 let boardMetrics = { cellSize: 0, gap: 0, stride: 0 };
 let pendingBestScoreSave = false;
+let lastMouseIndex = null;
 
 bestScoreEl.textContent = bestScore;
 updateMuteButton();
@@ -128,12 +129,14 @@ function currentSpeedLabel() {
 }
 
 function render() {
-  for (const cell of cells) {
-    cell.className = "cell";
+  if (lastMouseIndex !== null && cells[lastMouseIndex]) {
+    cells[lastMouseIndex].classList.remove("mouse");
   }
-
   if (mouse) {
-    cells[cellIndex(mouse)].classList.add("mouse");
+    lastMouseIndex = cellIndex(mouse);
+    cells[lastMouseIndex].classList.add("mouse");
+  } else {
+    lastMouseIndex = null;
   }
   scoreEl.textContent = score;
   bestScoreEl.textContent = bestScore;
@@ -330,7 +333,7 @@ function startGame() {
   startButton.classList.add("hidden");
   restartButton.classList.add("hidden");
   setStatus("Hunting...");
-  playTone(440, 0.04, "square");
+  playToneSoon(440, 0.04, "square");
 }
 
 function isReverse(next) {
@@ -365,7 +368,7 @@ function endGame(reason) {
   restartButton.classList.remove("hidden");
   showOverlay("Run ended", "The mouse escaped", reason, formatRunStats());
   pauseButton.textContent = "Pause";
-  playTone(155, 0.18, "sawtooth");
+  playToneSoon(155, 0.18, "sawtooth");
 }
 
 function step() {
@@ -412,7 +415,7 @@ function step() {
     setSpeedForScore();
     mouse = randomEmptyCell();
     setStatus("Mouse caught");
-    playTone(620, 0.05, "triangle");
+    playToneSoon(620, 0.05, "triangle");
     if (!mouse) {
       gameOver = true;
       paused = false;
@@ -422,7 +425,7 @@ function step() {
       startButton.classList.add("hidden");
       restartButton.classList.remove("hidden");
       showOverlay("Perfect run", "Every mouse is caught", "You filled the whole grid and won the hunt.", formatRunStats());
-      playTone(880, 0.12, "triangle");
+      playToneSoon(880, 0.12, "triangle");
       return;
     }
   } else {
@@ -480,6 +483,12 @@ function playTone(frequency, duration, type) {
   oscillator.stop(now + duration);
 }
 
+function playToneSoon(frequency, duration, type) {
+  window.setTimeout(() => {
+    playTone(frequency, duration, type);
+  }, 0);
+}
+
 function updateMuteButton() {
   muteButton.textContent = soundMuted ? "Sound Off" : "Sound On";
 }
@@ -489,7 +498,7 @@ function toggleSound() {
   localStorage.setItem(soundMutedKey, String(soundMuted));
   updateMuteButton();
   if (!soundMuted) {
-    playTone(520, 0.05, "triangle");
+    playToneSoon(520, 0.05, "triangle");
   }
 }
 
