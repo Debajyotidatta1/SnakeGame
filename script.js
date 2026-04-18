@@ -13,6 +13,12 @@ const pauseButton = document.getElementById("pause-button");
 const restartButton = document.getElementById("restart-button");
 const newGameButton = document.getElementById("new-game-button");
 const padButtons = document.querySelectorAll(".pad-button");
+const directionMap = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
 
 let snake;
 let direction;
@@ -23,6 +29,8 @@ let bestScore = Number(localStorage.getItem(bestScoreKey) || 0);
 let paused = false;
 let gameOver = false;
 let tickTimer;
+let touchStartX = 0;
+let touchStartY = 0;
 
 bestScoreEl.textContent = bestScore;
 
@@ -208,18 +216,18 @@ function togglePause() {
 
 function handleKeydown(event) {
   const keyMap = {
-    ArrowUp: { x: 0, y: -1 },
-    w: { x: 0, y: -1 },
-    W: { x: 0, y: -1 },
-    ArrowDown: { x: 0, y: 1 },
-    s: { x: 0, y: 1 },
-    S: { x: 0, y: 1 },
-    ArrowLeft: { x: -1, y: 0 },
-    a: { x: -1, y: 0 },
-    A: { x: -1, y: 0 },
-    ArrowRight: { x: 1, y: 0 },
-    d: { x: 1, y: 0 },
-    D: { x: 1, y: 0 },
+    ArrowUp: directionMap.up,
+    w: directionMap.up,
+    W: directionMap.up,
+    ArrowDown: directionMap.down,
+    s: directionMap.down,
+    S: directionMap.down,
+    ArrowLeft: directionMap.left,
+    a: directionMap.left,
+    A: directionMap.left,
+    ArrowRight: directionMap.right,
+    d: directionMap.right,
+    D: directionMap.right,
   };
 
   const next = keyMap[event.key];
@@ -235,23 +243,59 @@ function handleKeydown(event) {
   }
 }
 
+function handleTouchStart(event) {
+  const touch = event.touches[0];
+  if (!touch) {
+    return;
+  }
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+}
+
+function handleTouchMove(event) {
+  event.preventDefault();
+}
+
+function handleTouchEnd(event) {
+  const touch = event.changedTouches[0];
+  if (!touch) {
+    return;
+  }
+
+  const deltaX = touch.clientX - touchStartX;
+  const deltaY = touch.clientY - touchStartY;
+  const threshold = 18;
+
+  if (Math.abs(deltaX) < threshold && Math.abs(deltaY) < threshold) {
+    return;
+  }
+
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    setDirection(deltaX > 0 ? directionMap.right : directionMap.left);
+    return;
+  }
+
+  setDirection(deltaY > 0 ? directionMap.down : directionMap.up);
+}
+
 function setupEvents() {
   window.addEventListener("keydown", handleKeydown);
   pauseButton.addEventListener("click", togglePause);
   restartButton.addEventListener("click", resetGame);
   newGameButton.addEventListener("click", resetGame);
+  board.addEventListener("touchstart", handleTouchStart, { passive: true });
+  board.addEventListener("touchmove", handleTouchMove, { passive: false });
+  board.addEventListener("touchend", handleTouchEnd);
 
   padButtons.forEach((button) => {
-    button.addEventListener("click", () => {
+    const handlePress = (event) => {
+      event.preventDefault();
       const { direction: dir } = button.dataset;
-      const map = {
-        up: { x: 0, y: -1 },
-        down: { x: 0, y: 1 },
-        left: { x: -1, y: 0 },
-        right: { x: 1, y: 0 },
-      };
-      setDirection(map[dir]);
-    });
+      setDirection(directionMap[dir]);
+    };
+
+    button.addEventListener("click", handlePress);
+    button.addEventListener("pointerdown", handlePress);
   });
 }
 

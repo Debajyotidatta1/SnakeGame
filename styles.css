@@ -25,6 +25,7 @@ body {
     radial-gradient(circle at top, rgba(78, 173, 255, 0.14), transparent 28%),
     radial-gradient(circle at bottom left, rgba(128, 255, 114, 0.14), transparent 30%),
     linear-gradient(160deg, #040a10, var(--bg) 46%, #091723 100%);
+  overscroll-behavior: none;
 }
 
 body::before {
@@ -42,7 +43,7 @@ body::before {
 .game-shell {
   width: min(960px, calc(100vw - 24px));
   margin: 0 auto;
-  padding: 28px 0 40px;
+  padding: max(18px, env(safe-area-inset-top)) 0 max(28px, env(safe-area-inset-bottom));
 }
 
 .hero h1,
@@ -132,6 +133,9 @@ body::before {
   grid-template-columns: repeat(18, 1fr);
   gap: 5px;
   aspect-ratio: 1 / 1;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .cell {
@@ -264,6 +268,7 @@ body::before {
   border-radius: 14px;
   cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  touch-action: manipulation;
 }
 
 .action-button {
@@ -325,21 +330,61 @@ body::before {
 
 @media (max-width: 700px) {
   .game-shell {
-    width: min(100vw - 16px, 960px);
+    width: min(100vw - 12px, 960px);
     padding-top: 18px;
   }
 
+  .hero h1 {
+    font-size: clamp(2.35rem, 12vw, 3.6rem);
+  }
+
+  .subtitle,
+  .guide p {
+    font-size: 0.95rem;
+  }
+
+  .hud,
+  .controls,
+  .guide {
+    gap: 10px;
+  }
+
+  .panel {
+    flex: 1 1 110px;
+    min-width: 0;
+  }
+
   .board-wrap {
-    padding: 10px;
+    padding: 8px;
     border-radius: 20px;
   }
 
   .board {
-    gap: 4px;
+    gap: 3px;
   }
 
   .guide {
     flex-direction: column;
     align-items: flex-start;
+    padding: 14px;
+  }
+
+  .pad {
+    width: 100%;
+    justify-content: center;
+    grid-template-columns: repeat(3, minmax(64px, 78px));
+    gap: 12px;
+  }
+
+  .pad-button {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    font-size: 1.45rem;
+  }
+
+  .action-button {
+    flex: 1 1 140px;
+    min-height: 48px;
   }
 }
