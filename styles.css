@@ -130,8 +130,8 @@ body::before {
 
 .board {
   display: grid;
-  grid-template-columns: repeat(18, 1fr);
-  gap: 5px;
+  grid-template-columns: repeat(var(--grid-size, 28), 1fr);
+  gap: 3px;
   aspect-ratio: 1 / 1;
   touch-action: none;
   user-select: none;
@@ -140,7 +140,7 @@ body::before {
 
 .cell {
   position: relative;
-  border-radius: 10px;
+  border-radius: 6px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
     rgba(8, 26, 36, 0.98);
@@ -152,8 +152,8 @@ body::before {
 .cell::after {
   content: "";
   position: absolute;
-  inset: 5px;
-  border-radius: 8px;
+  inset: 3px;
+  border-radius: 4px;
   border: 1px solid rgba(146, 230, 255, 0.045);
 }
 
@@ -360,7 +360,7 @@ body::before {
   }
 
   .board {
-    gap: 3px;
+    gap: 2px;
   }
 
   .guide {

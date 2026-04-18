@@ -1,4 +1,4 @@
-const gridSize = 18;
+const gridSize = 28;
 const tickMs = 150;
 const bestScoreKey = "snake-hunts-mouse-best";
 
@@ -36,6 +36,7 @@ bestScoreEl.textContent = bestScore;
 
 function createBoard() {
   const cells = [];
+  board.style.setProperty("--grid-size", String(gridSize));
   for (let i = 0; i < gridSize * gridSize; i += 1) {
     const cell = document.createElement("div");
     cell.className = "cell";
@@ -111,10 +112,11 @@ function hideOverlay() {
 }
 
 function resetGame() {
+  const center = Math.floor(gridSize / 2);
   snake = [
-    { x: 8, y: 9 },
-    { x: 7, y: 9 },
-    { x: 6, y: 9 },
+    { x: center, y: center },
+    { x: center - 1, y: center },
+    { x: center - 2, y: center },
   ];
   direction = { x: 1, y: 0 };
   queuedDirection = direction;
