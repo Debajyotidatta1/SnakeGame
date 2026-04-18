@@ -2,6 +2,10 @@
 
 A simple browser-based snake game where the snake hunts a small mouse across a matrix-style grid.
 
+## Live Demo
+
+Play it here: [https://debajyotidatta1.github.io/SnakeGame/](https://debajyotidatta1.github.io/SnakeGame/)
+
 ## Features
 
 - Matrix-like box grid layout
