@@ -7,6 +7,7 @@ const leaderboardKey = "snake-hunts-mouse-leaderboard";
 const soundMutedKey = "snake-hunts-mouse-muted";
 
 const board = document.getElementById("board");
+const snakeLayer = document.getElementById("snake-layer");
 const scoreEl = document.getElementById("score");
 const bestScoreEl = document.getElementById("best-score");
 const statusEl = document.getElementById("status");
@@ -41,11 +42,15 @@ let leaderboard = loadLeaderboard();
 let soundMuted = localStorage.getItem(soundMutedKey) === "true";
 let paused = false;
 let gameOver = false;
-let tickTimer;
 let currentTickMs = baseTickMs;
 let touchStartX = 0;
 let touchStartY = 0;
 let audioContext;
+let previousSnake = [];
+let pendingDirections = [];
+let animationFrameId;
+let lastFrameTime = 0;
+let accumulatedMs = 0;
 
 bestScoreEl.textContent = bestScore;
 updateMuteButton();
@@ -64,6 +69,10 @@ function createBoard() {
 }
 
 const cells = createBoard();
+
+function cloneSnakeState(state) {
+  return state.map((segment) => ({ ...segment }));
+}
 
 function cellIndex(position) {
   return position.y * gridSize + position.x;
@@ -107,11 +116,6 @@ function render() {
     cell.className = "cell";
   }
 
-  snake.forEach((segment, index) => {
-    const className = index === 0 ? "cell snake snake-head" : "cell snake";
-    cells[cellIndex(segment)].className = className;
-  });
-
   if (mouse) {
     cells[cellIndex(mouse)].classList.add("mouse");
   }
@@ -119,6 +123,51 @@ function render() {
   bestScoreEl.textContent = bestScore;
   levelEl.textContent = currentLevel();
   speedEl.textContent = currentSpeedLabel();
+}
+
+function syncSnakePieces() {
+  while (snakeLayer.children.length < snake.length) {
+    const piece = document.createElement("div");
+    piece.className = "snake-piece";
+    snakeLayer.appendChild(piece);
+  }
+
+  while (snakeLayer.children.length > snake.length) {
+    snakeLayer.lastElementChild.remove();
+  }
+}
+
+function getBoardMetrics() {
+  const style = window.getComputedStyle(board);
+  const gap = Number.parseFloat(style.columnGap || style.gap || "0");
+  const boardWidth = board.clientWidth;
+  const cellSize = (boardWidth - gap * (gridSize - 1)) / gridSize;
+  return { cellSize, gap };
+}
+
+function renderSnake(progress = 1) {
+  if (!snake || snake.length === 0) {
+    snakeLayer.innerHTML = "";
+    return;
+  }
+
+  syncSnakePieces();
+  const { cellSize, gap } = getBoardMetrics();
+  const stride = cellSize + gap;
+
+  snake.forEach((segment, index) => {
+    const piece = snakeLayer.children[index];
+    const fromSegment = previousSnake[index] || previousSnake[index - 1] || segment;
+    const interpolatedX = fromSegment.x + (segment.x - fromSegment.x) * progress;
+    const interpolatedY = fromSegment.y + (segment.y - fromSegment.y) * progress;
+    const size = index === 0 ? cellSize * 0.96 : cellSize * 0.9;
+    const offset = (cellSize - size) / 2;
+
+    piece.className = index === 0 ? "snake-piece head" : "snake-piece";
+    piece.style.width = `${size}px`;
+    piece.style.height = `${size}px`;
+    piece.style.transform = `translate(${interpolatedX * stride + offset}px, ${interpolatedY * stride + offset}px)`;
+  });
 }
 
 function updateBestScore() {
@@ -200,7 +249,6 @@ function hideOverlay() {
 function setSpeedForScore() {
   const level = currentLevel();
   currentTickMs = Math.max(minimumTickMs, baseTickMs - (level - 1) * speedStep);
-  startLoop();
 }
 
 function formatRunStats() {
@@ -216,14 +264,18 @@ function resetRun() {
   ];
   direction = { x: 1, y: 0 };
   queuedDirection = direction;
+  pendingDirections = [];
   mouse = randomEmptyCell();
   score = 0;
   paused = false;
   gameOver = false;
   currentTickMs = baseTickMs;
+  accumulatedMs = 0;
+  previousSnake = cloneSnakeState(snake);
   pauseButton.textContent = "Pause";
   setStatus("Hunt started");
   render();
+  renderSnake(1);
 }
 
 function resetGame() {
@@ -263,8 +315,15 @@ function setDirection(next) {
   if (gameOver) {
     return;
   }
-  if (isReverse(next)) {
+  const referenceDirection = pendingDirections[pendingDirections.length - 1] || queuedDirection;
+  if (referenceDirection.x + next.x === 0 && referenceDirection.y + next.y === 0) {
     return;
+  }
+  if (referenceDirection.x === next.x && referenceDirection.y === next.y) {
+    return;
+  }
+  if (pendingDirections.length < 2) {
+    pendingDirections.push(next);
   }
   queuedDirection = next;
 }
@@ -288,7 +347,13 @@ function step() {
     return;
   }
 
-  direction = queuedDirection;
+  previousSnake = cloneSnakeState(snake);
+
+  const nextDirection = pendingDirections.shift();
+  if (nextDirection && !isReverse(nextDirection)) {
+    direction = nextDirection;
+  }
+  queuedDirection = direction;
   const head = snake[0];
   const nextHead = { x: head.x + direction.x, y: head.y + direction.y };
 
@@ -489,9 +554,34 @@ function setupEvents() {
   });
 }
 
+function animationLoop(timestamp) {
+  if (!lastFrameTime) {
+    lastFrameTime = timestamp;
+  }
+
+  let delta = timestamp - lastFrameTime;
+  lastFrameTime = timestamp;
+  delta = Math.min(delta, 34);
+
+  if (!paused && !gameOver) {
+    accumulatedMs += delta;
+    while (accumulatedMs >= currentTickMs) {
+      accumulatedMs -= currentTickMs;
+      step();
+    }
+  }
+
+  const progress = paused || gameOver ? 1 : Math.min(accumulatedMs / currentTickMs, 1);
+  renderSnake(progress);
+  animationFrameId = window.requestAnimationFrame(animationLoop);
+}
+
 function startLoop() {
-  clearInterval(tickTimer);
-  tickTimer = window.setInterval(step, currentTickMs);
+  if (animationFrameId) {
+    window.cancelAnimationFrame(animationFrameId);
+  }
+  lastFrameTime = 0;
+  animationFrameId = window.requestAnimationFrame(animationLoop);
 }
 
 renderLeaderboard();
